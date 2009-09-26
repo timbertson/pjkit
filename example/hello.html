@@ -1,0 +1,24 @@
+<html>
+	<head>
+		<title>Hello python!</title>
+		<script src="lib/json2.js"></script>
+		<script src="python_bridge.js"></script>
+		<script>
+			function testPy() {
+				PYTHON.send('get_uname', function(val) {
+					alert("python's system information is: " + val);
+				};
+			}
+
+			function getUserInput(what){
+				return prompt("python wants " + what);
+			}
+		</script>
+	</head>
+
+	<body>
+		<p>When you loaded this page, python should have prompted you for your name..."</p>
+		<a href="javascript:testPy();">call python from javascript</a>
+	</body>
+</html>
+
