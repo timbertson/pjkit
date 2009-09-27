@@ -8,7 +8,8 @@ import logging
 SLEEP_TIME = 0.1
 
 def escape(str):
-	return re.sub("'", "\\'", str)
+	escaped_slashes = str.replace('\\','\\\\')
+	return escaped_slashes.replace("'","\\'")
 	
 class JsProxy(object):
 	def __init__(self, bridge):
@@ -17,13 +18,14 @@ class JsProxy(object):
 	def __getattr__(self, name):
 		result = []
 		def handle_result(val):
+			logging.debug("got result for function %s!" % (name,))
 			result.append(val)
 			
 		def perform_action_sync(*args):
 			self.__bridge.send(name, args, on_return=handle_result)
 			while len(result) == 0:
 				sleep(SLEEP_TIME)
-				self.__bridge.run_queue()
+			logging.debug("2: got result for function %s!" % (name,))
 			return result[0]
 		return perform_action_sync
 
@@ -31,7 +33,6 @@ class JsProxy(object):
 class JsonBridge(object):
 	def __init__(self, web, context={}):
 		self.web = web
-		self.recv_q = Queue.Queue()
 		self.context = context
 		self._next_cb = 1
 		self._callbacks = {}
@@ -53,11 +54,6 @@ class JsonBridge(object):
 		json_val = json.write(value)
 		self.do_send("PYTHON._recv_cb(%s, '%s');" % (callback_id, escape(json_val)))
 
-	def run_queue(self):
-		"""run any pending actions in the communications queue"""
-		while not self.recv_q.empty():
-			self.recv_q.get()()
-	
 	def recv(self, jsonStr):
 		"""receive a json string from javascript.
 		fields we expect in the JSON:
@@ -76,19 +72,24 @@ class JsonBridge(object):
 		rather than executed immediately
 		"""
 		obj = json.read(jsonStr)
+		logging.debug("recveiving obj: %r" % (obj,))
 		if 'responding_to' in obj:
 			def do_work():
 				callback_id = obj['responding_to']
 				callback = self._callbacks[callback_id]
-				func(obj['value'])
+				callback(obj['value'])
 				del self._callbacks[callback_id]
 		else:
 			def do_work():
-				callable = eval(obj['method'], globals={}, locals=self.context)
-				result = callable(*obj.args)
+				logging.debug("callable = x")
+				callable = eval(obj['method'], {}, self.context)
+				logging.debug("callable = %r" % (callable,))
+				result = callable(*obj['args'])
+				logging.debug("result of requested computation: %r" % (result,))
 				if 'respond_to' in obj:
 					self._respond_to(obj['respond_to'], result)
-		self.recv_q.put(do_work)
+		logging.debug("do_work = %r" % (do_work,))
+		self.perform(do_work)
 
 
 
@@ -97,13 +98,8 @@ import gobject
 import threading
 import logging
 
-def synchronous_gtk_message(action):
-	logging.debug('> getting gtk lock')
-	gtk.gdk.threads_enter()
-	logging.debug('> got gtk lock')
-	action()
-	logging.debug('> released gtk lock')
-	gtk.gdk.threads_leave()
+def asynchronous_gtk_message(action):
+	gobject.idle_add(action)
 
 class GtkWebkitBridge(JsonBridge):
 	def __init__(self, *a):
@@ -111,24 +107,33 @@ class GtkWebkitBridge(JsonBridge):
 		self.__ready = False
 		self.__readycond = threading.Condition()
 		self.web.connect('title-changed', self.__on_title_changed)
+		self.web.connect('load-finished', self.__on_ready)
 	
+	def __on_ready(self, widget, frame):
+		logging.debug("webkit view is ready!")
+		self.__readycond.acquire()
+		self.__ready = True
+		self.__readycond.notifyAll()
+		self.__readycond.release()
+
 	def __on_title_changed(self, widget, frame, title):
-		print "title changed to: %s" % (title,)
-		if title == 'ready':
-			print "ready!"
-			self.__readycond.acquire()
-			self.__ready = True
-			self.__readycond.notifyAll()
-			self.__readycond.release()
-		else:
-			self.recv(title)
+		self.recv(title)
+	
+	def perform(self, callable):
+		# this should be called from a webkit-title-change, which
+		# is alway in the main thread. so we can just run it immediately
+		callable()
 
 	def do_send(self, msg):
 		self.__readycond.acquire()
 		if self.__ready is False:
-			print "waiting for webkit readyness"
+			logging.debug("waiting for webkit readyness")
 			self.__readycond.wait()
 		self.__readycond.release()
-		print "sending webkit message: %s" % (msg,)
-		synchronous_gtk_message(lambda: self.web.execute_script(msg))
+		logging.debug("sending webkit message: %s" % (msg,))
+		def doit():
+			self.web.execute_script(msg)
+			logging.debug("message SENT!")
+		#asynchronous_gtk_message(lambda: self.web.execute_script(msg))
+		asynchronous_gtk_message(doit)
 

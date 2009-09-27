@@ -24,11 +24,11 @@ var PYTHON = function(){
 		delegate: null,
 
 		_send: function(obj) {
-			document.title = "null";
 			document.title = JSON.stringify(obj);
 		},
 
 		_send_cb: function(id, val) {
+			console.log("sending cb " + id + " value " + val);
 			PYTHON._send({
 				responding_to: id,
 				value: val
@@ -36,7 +36,7 @@ var PYTHON = function(){
 		},
 
 		_recv_cb: function(id, str) {
-			alert("got cb: " + str);
+			console.log("JAVASCRIPT got cb: " + str);
 			var obj = JSON.parse(str);
 			PYTHON._callbacks[id](obj.value);
 			delete PYTHON._callbacks[id];

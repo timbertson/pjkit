@@ -10,15 +10,16 @@
 			}
 
 			function getUserInput(what){
-				return prompt("python wants " + what);
+				var val = prompt("python wants to know your " + what);
+				return val;
 			}
 		</script>
 	</head>
 
-	<body onload="document.title = 'ready'">
+	<body>
 		<p>When you loaded this page, python should have prompted you for your name...</p>
 
-		<a href="javascript:testPy();alert('foo')">call python from javascript</a>
+		<a href="javascript:testPy();">call python from javascript</a>
 	</body>
 </html>
 
