@@ -3,6 +3,8 @@ import re
 from time import sleep
 import Queue
 
+import logging
+
 SLEEP_TIME = 0.1
 
 def escape(str):
@@ -56,7 +58,7 @@ class JsonBridge(object):
 		while not self.recv_q.empty():
 			self.recv_q.get()()
 	
-	def recv(jsonStr):
+	def recv(self, jsonStr):
 		"""receive a json string from javascript.
 		fields we expect in the JSON:
 		if this is the result of a javascript computation requested by python, these MUST be set:
@@ -92,35 +94,41 @@ class JsonBridge(object):
 
 import gtk
 import gobject
+import threading
+import logging
 
-def asynchronous_gtk_message(fun):
-	def worker((function, args, kwargs)):
-		apply(function, args, kwargs)
-
-	def fun2(*args, **kwargs):
-		gobject.idle_add(worker, (fun, args, kwargs))
-	return fun2
-
-def synchronous_gtk_message(fun):
-	class NoResult: pass
-	def worker((R, function, args, kwargs)):
-		R.result = apply(function, args, kwargs)
-
-	def fun2(*args, **kwargs):
-		class R: result = NoResult
-		gobject.idle_add(worker, (R, fun, args, kwargs))
-		while R.result is NoResult: sleep(0.01)
-		return R.result
-	return fun2
+def synchronous_gtk_message(action):
+	logging.debug('> getting gtk lock')
+	gtk.gdk.threads_enter()
+	logging.debug('> got gtk lock')
+	action()
+	logging.debug('> released gtk lock')
+	gtk.gdk.threads_leave()
 
 class GtkWebkitBridge(JsonBridge):
 	def __init__(self, *a):
 		super(type(self), self).__init__(*a)
+		self.__ready = False
+		self.__readycond = threading.Condition()
 		self.web.connect('title-changed', self.__on_title_changed)
 	
 	def __on_title_changed(self, widget, frame, title):
-		if title != 'null': self.recv(title)
+		print "title changed to: %s" % (title,)
+		if title == 'ready':
+			print "ready!"
+			self.__readycond.acquire()
+			self.__ready = True
+			self.__readycond.notifyAll()
+			self.__readycond.release()
+		else:
+			self.recv(title)
 
 	def do_send(self, msg):
-		synchronous_gtk_message(self.web.execute_script)(msg)
+		self.__readycond.acquire()
+		if self.__ready is False:
+			print "waiting for webkit readyness"
+			self.__readycond.wait()
+		self.__readycond.release()
+		print "sending webkit message: %s" % (msg,)
+		synchronous_gtk_message(lambda: self.web.execute_script(msg))
 

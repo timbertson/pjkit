@@ -1,9 +1,7 @@
 var PYTHON = function(){
-	var self = PYTHON;
-
 	return {
 		_last_cb_key: 1,
-		_callbacks: new Array();
+		_callbacks: new Array(),
 
 		call: function() {
 			var args = Array.prototype.slice.call(arguments);
@@ -16,9 +14,10 @@ var PYTHON = function(){
 			}
 			if(typeof(last_arg) == 'function') {
 				var callback = call.args.pop();
-				call.respond_to = self._last_cb_key++;
-				self._callbacks[call.respond_to] = args.pop();
+				call.respond_to = PYTHON._last_cb_key++;
+				PYTHON._callbacks[call.respond_to] = args.pop();
 			}
+			PYTHON._send(call);
 
 		},
 
@@ -26,20 +25,21 @@ var PYTHON = function(){
 
 		_send: function(obj) {
 			document.title = "null";
-			document.title = JSON.stringify(call);
+			document.title = JSON.stringify(obj);
 		},
 
 		_send_cb: function(id, val) {
-			self._send({
+			PYTHON._send({
 				responding_to: id,
 				value: val
 			});
 		},
 
 		_recv_cb: function(id, str) {
+			alert("got cb: " + str);
 			var obj = JSON.parse(str);
-			self._callbacks[id](obj.value);
-			delete self._callbacks[id];
+			PYTHON._callbacks[id](obj.value);
+			delete PYTHON._callbacks[id];
 		},
 
 		_recv: function(str) {
@@ -49,7 +49,7 @@ var PYTHON = function(){
 			var delegate, func;
 			var python_callback_key = null;
 			if('respond_to' in obj) python_callback_key = obj.respond_to;
-			if(self.delegate == null) {
+			if(PYTHON.delegate == null) {
 				callee = null;
 				func = eval(obj.method);
 			} else {
@@ -58,7 +58,7 @@ var PYTHON = function(){
 			}
 			var result = func.apply(delegate, obj.args);
 			if(python_callback_key != null) {
-				self._send_cb(python_callback_key, result);
+				PYTHON._send_cb(python_callback_key, result);
 			}
 		}
 	};

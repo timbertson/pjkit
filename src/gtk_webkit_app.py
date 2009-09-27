@@ -3,19 +3,21 @@ import Queue
 import gtk
 import gobject
 import webkit
+import logging
+
+def gtk_do(action):
+	logging.debug('> getting gtk lock')
+	gtk.gdk.threads_enter()
+	logging.debug('> got gtk lock')
+	action()
+	logging.debug('> released gtk lock')
+	gtk.gdk.threads_leave()
 
 class Global(object):
 	quit = False
 	@classmethod
 	def set_quit(cls, *args, **kwargs):
-		def asynchronous_gtk_message(fun):
-			def worker((function, args, kwargs)):
-				apply(function, args, kwargs)
-
-			def fun2(*args, **kwargs):
-				gobject.idle_add(worker, (fun, args, kwargs))
-			return fun2
-		asynchronous_gtk_message(gtk.main_quit)()
+		gtk_do(gtk.main_quit)
 		cls.quit = True
 
 
@@ -45,21 +47,16 @@ class GtkWebkitApp(object):
 		# Start GTK in its own thread:
 		from threading import Thread
 		gtk.gdk.threads_init()
-		Thread(target=gtk.main).start()
+
+		def init_gtk():
+			gtk.gdk.threads_enter()
+			print 'starting gtk'
+			gtk.main()
+			print 'gtk.main() ended'
+			gtk.gdk.threads_leave()
+
+		Thread(target=init_gtk).start()
+		print "sontinuing in the main thread"
 		import signal
 		signal.signal(signal.SIGINT, Global.set_quit)
-
-def my_quit_wrapper(fun):
-	import signal
-	signal.signal(signal.SIGINT, Global.set_quit)
-	def fun2(*args, **kwargs):
-		try:
-			x = fun(*args, **kwargs) # equivalent to "apply"
-		finally:
-			kill_gtk_thread()
-			Global.set_quit()
-		return x
-	return fun2
-
-
 
