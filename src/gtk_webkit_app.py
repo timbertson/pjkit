@@ -6,6 +6,7 @@ import webkit
 import logging
 import signal
 import threading
+from threading import Thread
 
 def gtk_do(action):
 	logging.debug('> getting gtk lock')
@@ -18,6 +19,7 @@ def gtk_do(action):
 class GtkWebkitApp(object):
 	quit = False
 	def __init__(self):
+		gtk.gdk.threads_init() # logic says I should call this. repeated failures say maybe it's not ideal
 		self._worker_threads = []
 		
 	@classmethod
@@ -69,9 +71,6 @@ class GtkWebkitApp(object):
 		self._worker_threads.append(thread)
 	
 	def run(self):
-		from threading import Thread
-		#gtk.gdk.threads_init() # logic says I should call this. repeated failures say maybe it's not ideal
-
 		# queue up secondary threads to run once gtk is settled
 		for thread in self._worker_threads:
 			gobject.idle_add(lambda: thread.start())
@@ -80,7 +79,9 @@ class GtkWebkitApp(object):
 		gobject.idle_add(lambda: signal.signal(signal.SIGINT, self.set_quit))
 
 		logging.debug('starting gtk')
+		#gtk.gdk.threads_enter()
 		gtk.main()
+		#gtk.gdk.threads_leave()
 		logging.debug('gtk.main() ended')
 
 
