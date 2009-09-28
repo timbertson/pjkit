@@ -22,18 +22,18 @@ def get_uname():
 
 class Main(object):
 	def __init__(self):
-		app = App()
+		self.app = App()
 		path = os.path.abspath(os.path.join(base, 'hello.html'))
 
 		# setup the webkit / js bridge
-		window, webview = app.webkit_window('file://' + urllib.quote(path))
+		window, webview = self.app.webkit_window('file://' + urllib.quote(path))
 		bridge = json_bridge.GtkWebkitBridge(webview)
 		bridge.context = {'get_uname': get_uname}
 		self.js = bridge.proxy
 	
 	def run(self):
-		app.add_thread(threading.Thread(target=self.app_main))
-		app.run()
+		self.app.add_thread(threading.Thread(target=self.app_main))
+		self.app.run()
 
 	def app_main(self):
 		logging.info("first JS call...")
