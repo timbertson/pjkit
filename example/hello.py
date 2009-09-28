@@ -18,7 +18,6 @@ from gtk_webkit_app import GtkWebkitApp as App
 def get_uname():
 	# an example function to call from javascript
 	uname = '\n'.join(os.uname())
-	logging.debug("getting uname! (which is %s)" % (uname,))
 	return uname
 
 class Main(object):
@@ -31,7 +30,8 @@ class Main(object):
 		bridge = json_bridge.GtkWebkitBridge(webview)
 		bridge.context = {'get_uname': get_uname}
 		self.js = bridge.proxy
-
+	
+	def run(self):
 		app.add_thread(threading.Thread(target=self.app_main))
 		app.run()
 
@@ -41,6 +41,6 @@ class Main(object):
 
 
 if __name__ == '__main__':
-	sys.exit(Main())
+	sys.exit(Main().run())
 
 
