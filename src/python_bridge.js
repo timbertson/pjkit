@@ -15,7 +15,8 @@ var PYTHON = function(){
 			if(typeof(last_arg) == 'function') {
 				var callback = call.args.pop();
 				call.respond_to = PYTHON._last_cb_key++;
-				PYTHON._callbacks[call.respond_to] = args.pop();
+				PYTHON._callbacks[call.respond_to] = callback;
+				console.log("generated response key = " + call.respond_to + ", which points to " + PYTHON._callbacks[call.respond_to]);
 			}
 			PYTHON._send(call);
 
@@ -38,7 +39,7 @@ var PYTHON = function(){
 		_recv_cb: function(id, str) {
 			console.log("JAVASCRIPT got cb: " + str);
 			var obj = JSON.parse(str);
-			PYTHON._callbacks[id](obj.value);
+			PYTHON._callbacks[id](obj);
 			delete PYTHON._callbacks[id];
 		},
 
