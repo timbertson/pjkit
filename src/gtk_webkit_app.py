@@ -7,48 +7,18 @@ import logging
 import signal
 import threading
 from threading import Thread
-
-def gtk_do(action):
-	logging.debug('> getting gtk lock')
-	gtk.gdk.threads_enter()
-	logging.debug('> got gtk lock')
-	action()
-	logging.debug('> released gtk lock')
-	gtk.gdk.threads_leave()
+import gtk_helpers
 
 class GtkWebkitApp(object):
 	quit = False
 	def __init__(self):
-		gtk.gdk.threads_init() # logic says I should call this. repeated failures say maybe it's not ideal
+		gtk.gdk.threads_init()
 		self._worker_threads = []
 		
 	@classmethod
 	def set_quit(cls, *a, **kw):
 		gtk_do(gtk.main_quit)
 		cls.quit = True
-	
-	def gtk_action(self, callable, sync=False):
-		"""perform an action (optionally synchronously) in the main (GTK+) thread"""
-		if sync:
-			done = []
-			cond = threading.Condition()
-
-		def perform():
-			callable()
-			if sync:
-				cond.acquire()
-				done.append(True)
-				cond.notify()
-				cond.release()
-
-		gobject.idle_add(perform)
-		if not sync:
-			return
-		while len(done) == 0:
-			cond.acquire()
-			cond.wait()
-			cond.release()
-
 
 	def webkit_window(self, uri):
 		window = gtk.Window()
@@ -71,6 +41,7 @@ class GtkWebkitApp(object):
 		self._worker_threads.append(thread)
 	
 	def run(self):
+		gtk.gdk.threads_enter()
 		# queue up secondary threads to run once gtk is settled
 		for thread in self._worker_threads:
 			gobject.idle_add(lambda: thread.start())
@@ -79,9 +50,8 @@ class GtkWebkitApp(object):
 		gobject.idle_add(lambda: signal.signal(signal.SIGINT, self.set_quit))
 
 		logging.debug('starting gtk')
-		#gtk.gdk.threads_enter()
 		gtk.main()
-		#gtk.gdk.threads_leave()
+		gtk.gdk.threads_leave()
 		logging.debug('gtk.main() ended')
 
 

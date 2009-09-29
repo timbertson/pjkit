@@ -5,7 +5,7 @@ import Queue
 
 import logging
 
-SLEEP_TIME = 0.1
+SLEEP_TIME = 0.3
 
 def escape(str):
 	escaped_slashes = str.replace('\\','\\\\')
@@ -88,7 +88,6 @@ class JsonBridge(object):
 				logging.debug("result of requested computation: %r" % (result,))
 				if 'respond_to' in obj:
 					self._respond_to(obj['respond_to'], result)
-		logging.debug("do_work = %r" % (do_work,))
 		self.perform(do_work)
 
 
@@ -97,9 +96,7 @@ import gtk
 import gobject
 import threading
 import logging
-
-def asynchronous_gtk_message(action):
-	gobject.idle_add(action)
+from gtk_helpers import asynchronous_gtk_message
 
 class GtkWebkitBridge(JsonBridge):
 	def __init__(self, *a):
@@ -133,7 +130,7 @@ class GtkWebkitBridge(JsonBridge):
 		logging.debug("sending webkit message: %s" % (msg,))
 		def doit():
 			self.web.execute_script(msg)
-			logging.debug("message SENT!")
+			logging.debug("message SENT! (%s)" % (msg,))
 		#asynchronous_gtk_message(lambda: self.web.execute_script(msg))
 		asynchronous_gtk_message(doit)
 
