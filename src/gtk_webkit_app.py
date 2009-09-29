@@ -17,7 +17,7 @@ class GtkWebkitApp(object):
 		
 	@classmethod
 	def set_quit(cls, *a, **kw):
-		gtk_do(gtk.main_quit)
+		gtk_helpers.gtk_do(gtk.main_quit)
 		cls.quit = True
 
 	def webkit_window(self, uri):
@@ -25,7 +25,7 @@ class GtkWebkitApp(object):
 		box = gtk.VBox(homogeneous=False, spacing=0)
 		webview = webkit.WebView()
 
-		window.set_default_size(800, 600)
+		window.set_default_size(400, 200)
 		# Optional
 		window.connect('destroy', self.set_quit)
 

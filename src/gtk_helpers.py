@@ -16,8 +16,7 @@ def asynchronous_gtk_message(action):
 def gtk_action(self, callable, sync=False):
 	"""perform an action (optionally synchronously) in the main (GTK+) thread"""
 	if not sync:
-		asynchronous_gtk_message(callable)
-		return
+		return asynchronous_gtk_message(callable)
 
 	done = []
 	cond = threading.Condition()

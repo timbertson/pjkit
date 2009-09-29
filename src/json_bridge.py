@@ -1,8 +1,7 @@
 from lib.json import json
 import re
 from time import sleep
-import Queue
-
+import threading
 import logging
 
 SLEEP_TIME = 0.3
@@ -67,9 +66,6 @@ class JsonBridge(object):
 			- args: arguments to be sent to the python object
 		and this MAY be set:
 			-respond_to: the id of the javascript callback that will handle the return value
-
-		Note that as a result of a call to recv, the action will be placed in a queue,
-		rather than executed immediately
 		"""
 		obj = json.read(jsonStr)
 		logging.debug("recveiving obj: %r" % (obj,))
