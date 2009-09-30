@@ -1,5 +1,3 @@
-import Queue
-
 import gtk
 import gobject
 import webkit

@@ -74,16 +74,24 @@ class JsProxy(object):
 	
 	def __getattr__(self, name):
 		result = []
+		cond = threading.Condition()
 		def handle_result(val):
 			logging.debug("got result for function %s!" % (name,))
+			cond.acquire()
 			result.append(val)
+			cond.notify()
+			cond.release()
 			
 		def perform_action_sync(*args):
 			self.__bridge.send(name, args, on_return=handle_result)
-			while len(result) == 0:
-				sleep(SLEEP_TIME)
-			logging.debug("2: got result for function %s!" % (name,))
-			return result[0]
+			while True:
+				cond.acquire()
+				if len(result) > 0:
+					logging.debug("2: got result for function %s!" % (name,))
+					return result[0]
+				logging.debug("cond: WAIT")
+				cond.wait()
+				cond.release()
 		return perform_action_sync
 
 

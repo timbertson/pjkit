@@ -29,8 +29,11 @@ def gtk_action(self, callable, sync=False):
 		cond.release()
 
 	asynchronous_gtk_message(perform)
-	while len(done) == 0:
+	while True:
 		cond.acquire()
+		if len(done) > 0:
+			return
+		logging.debug("cond: WAIT")
 		cond.wait()
 		cond.release()
 
