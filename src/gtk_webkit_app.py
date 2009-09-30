@@ -17,7 +17,7 @@ class GtkWebkitApp(object):
 		
 	@classmethod
 	def set_quit(cls, *a, **kw):
-		gtk_helpers.gtk_do(gtk.main_quit)
+		gtk_helpers.asynchronous_gtk_message(gtk.main_quit)
 		cls.quit = True
 
 	def webkit_window(self, uri):
