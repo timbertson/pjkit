@@ -1,18 +1,16 @@
 #!/opt/local/bin/python2.5
-import sys
-import os
+import sys, os
+import urllib
 base = os.path.dirname(__file__)
 sys.path.append(os.path.join(base, '..','src'))
 
-import logging
-import logging.config
+import logging, logging.config
 logging.config.fileConfig(os.path.join(base, 'logging.conf'))
 
-import threading
-import urllib
 
-import json_bridge
+# pjkit for gtk:
 from gtk_webkit_app import GtkWebkitApp as App
+from gtk_webkit_bridge import GtkWebkitBridge
 
 
 def get_uname():
@@ -27,12 +25,15 @@ class Main(object):
 
 		# setup the webkit / js bridge
 		window, webview = self.app.webkit_window('file://' + urllib.quote(path))
-		bridge = json_bridge.GtkWebkitBridge(webview)
+		bridge = GtkWebkitBridge(webview)
 		bridge.context = {'get_uname': get_uname}
+		# once we set up the bridge, we can treat the proxy
+		# object as if it were the javascript runtime
 		self.js = bridge.proxy
 	
 	def run(self):
-		self.app.add_thread(threading.Thread(target=self.app_main))
+		# add_thread takes either a thread or a callable
+		self.app.add_thread(self.app_main)
 		self.app.run()
 
 	def app_main(self):

@@ -37,7 +37,11 @@ class GtkWebkitApp(object):
 		webview.open(uri)
 		return (window, webview)
 	
-	def add_thread(self, thread):
+	def add_thread(self, thread_or_func):
+		thread = thread_or_func
+		if callable(thread_or_func):
+			# wrap functions (callables) in their own thread
+			thread = Thread(target=thread_or_func)
 		self._worker_threads.append(thread)
 	
 	def run(self):
