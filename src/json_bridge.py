@@ -1,10 +1,7 @@
 from lib.json import json
 import re
-from time import sleep
 import threading
 import logging
-
-SLEEP_TIME = 0.3
 
 def escape(str):
 	escaped_slashes = str.replace('\\','\\\\')
