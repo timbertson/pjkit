@@ -2,15 +2,14 @@
 import sys, os
 import urllib
 base = os.path.dirname(__file__)
-sys.path.append(os.path.join(base, '..','src'))
+sys.path.append(os.path.join(base, '..'))
 
 import logging, logging.config
 logging.config.fileConfig(os.path.join(base, 'logging.conf'))
 
-
 # pjkit for gtk:
-from gtk_webkit_app import GtkWebkitApp as App
-from gtk_webkit_bridge import GtkWebkitBridge
+from pjkit.gtk_webkit_app import GtkWebkitApp as App
+from pjkit.gtk_webkit_bridge import GtkWebkitBridge
 
 
 def get_uname():
