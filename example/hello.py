@@ -1,4 +1,4 @@
-#!/opt/local/bin/python2.5
+#!/usr/bin/env python
 import sys, os
 import urllib
 base = os.path.dirname(__file__)
@@ -8,30 +8,27 @@ import logging, logging.config
 logging.config.fileConfig(os.path.join(base, 'logging.conf'))
 
 # pjkit for gtk:
-from pjkit.gtk_webkit_app import GtkWebkitApp as App
+from pjkit.gtk_webkit_app import GtkWebkitApp
 from pjkit.gtk_webkit_bridge import GtkWebkitBridge
 
-
-def get_uname():
-	# an example function to call from javascript
-	uname = '\n'.join(os.uname())
-	return uname
+class Context(object):
+	def get_uname(self):
+		# an example function to call from javascript
+		return '\n'.join(os.uname())
 
 class Main(object):
 	def __init__(self):
-		self.app = App()
-		path = os.path.abspath(os.path.join(base, 'hello.html'))
+		self.app = GtkWebkitApp()
+
+		uri = 'file://' + urllib.quote(
+			os.path.abspath(os.path.join(base, 'hello.html')))
 
 		# setup the webkit / js bridge
-		window, webview = self.app.webkit_window('file://' + urllib.quote(path))
-		bridge = GtkWebkitBridge(webview)
-		bridge.context = {'get_uname': get_uname}
-		# once we set up the bridge, we can treat the proxy
-		# object as if it were the javascript runtime
-		self.js = bridge.proxy
+		window, webview = self.app.webkit_window(uri)
+		self.js = GtkWebkitBridge(webview, Context()).proxy
 	
 	def run(self):
-		# add_thread takes either a thread or a callable
+		# register app_main to run once GTK has started
 		self.app.add_thread(self.app_main)
 		self.app.run()
 

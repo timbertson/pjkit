@@ -10,7 +10,7 @@ def escape(str):
 class JsonBridge(object):
 	def __init__(self, web, context={}):
 		self.web = web
-		self.context = context
+		self.context = Traversable(context)
 		self._next_cb = 1
 		self._callbacks = {}
 		self.proxy = JsProxy(self)
@@ -39,7 +39,7 @@ class JsonBridge(object):
 			- value: if responding_to, this is the javascript result
 
 		if responding_to is not present, these MUST be set:
-			- method: the python method to call. Note that this can be any eval-able string - e.g foo[-1].bar
+			- method: the python method to call. Note that this can be any dot-separated object path
 					this object is looked up from the `context` dictionary
 			- args: arguments to be sent to the python object
 		and this MAY be set:
@@ -56,13 +56,33 @@ class JsonBridge(object):
 		else:
 			def do_work():
 				logging.debug("callable = x")
-				callable = eval(obj['method'], {}, self.context)
+				callable = self.context.get(obj['method'])
 				logging.debug("callable = %r" % (callable,))
 				result = callable(*obj['args'])
 				logging.debug("result of requested computation: %r" % (result,))
 				if 'respond_to' in obj:
 					self._respond_to(obj['respond_to'], result)
 		self.perform(do_work)
+
+class Traversable(object):
+	def __init__(self, root):
+		self.root = root
+	
+	def get(self, path):
+		parts = path.split('.')
+		node = self.root
+		for part in parts:
+			node = self._next(node, part)
+		return node
+	
+	def _next(self, node, attr):
+		try:
+			return getattr(node, attr)
+		except AttributeError:
+			try:
+				return node[attr]
+			except (KeyError, TypeError):
+				raise AttributeError("no %r in object %r" % (attr, node))
 
 class JsProxy(object):
 	"""an object that can stand in for javascript function calls"""
